@@ -91,18 +91,18 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
 -- NOTE: You can change these options as you wish!
 --  For more options, you can see `:help option-list`
-
+--
 -- Make line numbers default
 vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -113,6 +113,7 @@ vim.opt.showmode = false
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
+--
 --  See `:help 'clipboard'`
 vim.schedule(function()
   vim.opt.clipboard = 'unnamedplus'
@@ -141,6 +142,8 @@ vim.opt.timeoutlen = 300
 -- Configure how new splits should be opened
 vim.opt.splitright = true
 vim.opt.splitbelow = true
+
+vim.opt.equalalways = false
 
 -- Sets how neovim will display certain whitespace characters in the editor.
 --  See `:help 'list'`
@@ -230,13 +233,92 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
-
+  'tpope/vim-fugitive', -- Git commands in Neovim
+  'github/copilot.vim',
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
   -- keys can be used to configure plugin behavior/loading/etc.
   --
   -- Use `opts = {}` to force a plugin to be loaded.
   --
+
+  {
+    'luckasRanarison/tailwind-tools.nvim',
+    name = 'tailwind-tools',
+    build = ':UpdateRemotePlugins',
+    dependencies = {
+      'nvim-treesitter/nvim-treesitter',
+      'nvim-telescope/telescope.nvim',
+      'neovim/nvim-lspconfig',
+    },
+    opts = {},
+  },
+  -- claude bs
+  {
+    'nvim-neo-tree/neo-tree.nvim',
+    branch = 'v3.x',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-tree/nvim-web-devicons',
+      'MunifTanjim/nui.nvim',
+    },
+    config = function()
+      -- Open neo-tree on startup
+      vim.api.nvim_create_autocmd('VimEnter', {
+        callback = function()
+          vim.cmd 'Neotree show'
+        end,
+      })
+    end,
+    keys = {
+      { '<leader>e', '<cmd>Neotree focus<cr>', desc = 'Focus Explorer' },
+    },
+    opts = {
+      filesystem = {
+        filtered_items = {
+          visible = true,
+          hide_dotfiles = false,
+          hide_gitignore = false,
+        },
+        follow_current_file = true,
+        hijack_netrw_behavior = 'open_current',
+        window = {
+          position = 'left',
+          width = 30,
+          mappings = {
+            -- ['<cr>'] = 'open_with_window_picker',
+            ['H'] = 'toggle_hidden', -- Toggle hidden files with H
+            ['d'] = 'delete', -- Delete with d
+            ['r'] = 'rename', -- Rename with r
+            ['y'] = 'copy_to_clipboard', -- Yank path to clipboard
+            ['x'] = 'cut_to_clipboard', -- Cut to clipboard
+            ['p'] = 'paste_from_clipboard', -- Paste from clipboard
+            ['c'] = 'copy', -- Copy file to a new location
+            ['m'] = 'move', -- Move file to a new location
+            ['q'] = 'close_window', -- Close neo-tree window
+          },
+        },
+      },
+    },
+  },
+
+  {
+    's1n7ax/nvim-window-picker',
+    name = 'window-picker',
+    opts = {
+      autoselect_one = true,
+      include_current = false,
+      filter_rules = {
+        -- filter using buffer options
+        bo = {
+          -- if the file type is one of following, the window will be ignored
+          filetype = { 'neo-tree', 'neo-tree-popup', 'notify' },
+          -- if the buffer type is one of following, the window will be ignored
+          buftype = { 'terminal', 'quickfix' },
+        },
+      },
+    },
+  },
 
   -- Here is a more advanced example where we pass configuration
   -- options to `gitsigns.nvim`. This is equivalent to the following Lua:
@@ -775,13 +857,13 @@ require('lazy').setup({
           -- Accept ([y]es) the completion.
           --  This will auto-import if your LSP supports it.
           --  This will expand snippets if the LSP sent a snippet.
-          ['<C-y>'] = cmp.mapping.confirm { select = true },
+          --['<C-y>'] = cmp.mapping.confirm { select = true },
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
-          --['<CR>'] = cmp.mapping.confirm { select = true },
-          --['<Tab>'] = cmp.mapping.select_next_item(),
-          --['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<CR>'] = cmp.mapping.confirm { select = true },
+          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
@@ -843,7 +925,14 @@ require('lazy').setup({
   },
 
   -- Highlight todo, notes, etc in comments
-  { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
+  {
+    'folke/todo-comments.nvim',
+    event = 'VimEnter',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    opts = { signs = false, keywords = {
+      LEFTOFF = { icon = '', color = 'hint' },
+    } },
+  },
 
   { -- Collection of various small independent plugins/modules
     'echasnovski/mini.nvim',
@@ -921,7 +1010,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
-  -- require 'kickstart.plugins.neo-tree',
+  require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
@@ -952,5 +1041,28 @@ require('lazy').setup({
   },
 })
 
+-- more claude bs
+-- local function load_session()
+--   -- Close Neo-tree if it's open
+--   vim.cmd 'Neotree close'
+--   -- Then load the session
+--   vim.cmd 'source Session.vim'
+--   -- Reopen Neo-tree after session is loaded
+--   vim.cmd 'Neotree show'
+-- end
+-- vim.api.nvim_create_user_command('LoadSession', load_session, {})
+
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+--
+--
+--
+--
+--  CUSTOM SETTINGS
+-- Indentation settings
+vim.opt.expandtab = true -- Convert tabs to spaces
+vim.opt.tabstop = 2 -- Number of spaces for a tab
+vim.opt.shiftwidth = 2 -- Number of spaces for each indentation
+vim.opt.softtabstop = 2 -- Number of spaces a tab counts for while editing
+
+-- /CUSTOM SETTINGS
