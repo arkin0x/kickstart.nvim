@@ -1126,4 +1126,91 @@ vim.g.copilot_filetypes = {
   markdown = false,
   ['*'] = true,
 }
--- /CUSTOM SETTINGS
+
+function apply_cursor_highlights()
+    -- Override any Treesitter or LSP highlights by replacing the groups
+    vim.api.nvim_set_hl(0, 'Cursor', {
+        fg = '#1a1b26',
+        bg = '#7aa2f7',
+        bold = true,
+    })
+    
+    vim.api.nvim_set_hl(0, 'VisualCursor', {
+        fg = '#1a1b26',
+        bg = '#ff9e64',
+        bold = true,
+    })
+
+    vim.opt.guicursor = "n:block-Cursor/lCursor,v:block-VisualCursor/lCursor,i-ci-ve:ver25/lCursor,r-cr:hor20/lCursor"
+
+    vim.cmd('redraw')
+end
+
+-- Set up all the autocommands for persistent cursor highlighting
+local highlight_group = vim.api.nvim_create_augroup("CustomCursorHighlight", { clear = true })
+
+-- Apply when colorscheme changes
+vim.api.nvim_create_autocmd("ColorScheme", {
+    pattern = "*",
+    callback = apply_cursor_highlights,
+    group = highlight_group,
+})
+
+-- Apply after UI is fully loaded
+vim.api.nvim_create_autocmd("VimEnter", {
+    callback = apply_cursor_highlights,
+    group = highlight_group,
+})
+
+-- Apply after LSP attaches to a buffer
+vim.api.nvim_create_autocmd("LspAttach", {
+    callback = function(args)
+        -- Small delay to ensure LSP has finished any highlight changes
+        vim.defer_fn(apply_cursor_highlights, 100)
+    end,
+    group = highlight_group,
+})
+
+-- Apply after entering insert mode (in case insert mode cursor was changed)
+vim.api.nvim_create_autocmd("InsertEnter", {
+    callback = function()
+        vim.defer_fn(apply_cursor_highlights, 0)
+    end,
+    group = highlight_group,
+})
+
+-- Apply after leaving insert mode
+vim.api.nvim_create_autocmd("InsertLeave", {
+    callback = function()
+        vim.defer_fn(apply_cursor_highlights, 0)
+    end,
+    group = highlight_group,
+})
+
+-- Apply when entering or leaving visual mode
+vim.api.nvim_create_autocmd("ModeChanged", {
+    pattern = {"*:v", "*:V", "*:\x16", "v:*", "V:*", "\x16:*"},  -- patterns for entering/leaving visual modes
+    callback = function()
+      vim.defer_fn(apply_cursor_highlights, 0)
+    end,
+    group = highlight_group,
+  })
+
+-- Apply after treesitter highlighting operations
+vim.api.nvim_create_autocmd("FileType", {
+    callback = function()
+        -- Small delay to ensure treesitter highlighting is done
+        vim.defer_fn(apply_cursor_highlights, 100)
+    end,
+    group = highlight_group,
+})
+
+-- Create a user command to manually fix cursor
+vim.api.nvim_create_user_command("FixCursor", function()
+    apply_cursor_highlights()
+    print("Cursor highlights restored")
+end, {})
+
+-- Initial application
+apply_cursor_highlights()
+-- /CUSTOSETTINGS
