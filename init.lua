@@ -89,6 +89,7 @@ P.S. You can delete this when you're done too. It's your config now! :)
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
+vim.o.exrc = true
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = true
@@ -304,7 +305,11 @@ require('lazy').setup({
       'nvim-telescope/telescope.nvim',
       'neovim/nvim-lspconfig',
     },
-    opts = {},
+    opts = {
+      server = {
+        override = false,
+      },
+    },
   },
   {
     'nvim-neo-tree/neo-tree.nvim',
@@ -388,6 +393,11 @@ require('lazy').setup({
         topdelete = { text = '‾' }, ---@diagnostic disable-line: missing-fields
         changedelete = { text = '~' }, ---@diagnostic disable-line: missing-fields
       },
+      on_attach = function(bufnr)
+        local gs = package.loaded.gitsigns
+        vim.keymap.set('n', ']c', function() gs.nav_hunk 'next' end, { buffer = bufnr, desc = 'Git: Next hunk' })
+        vim.keymap.set('n', '[c', function() gs.nav_hunk 'prev' end, { buffer = bufnr, desc = 'Git: Previous hunk' })
+      end,
     },
   },
 
@@ -536,6 +546,7 @@ require('lazy').setup({
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
           -- To jump back, press <C-t>.
+          vim.keymap.set('n', 'gd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
           vim.keymap.set('n', 'grd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
 
           -- Fuzzy find all the symbols in your current document.
@@ -714,9 +725,7 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-
-        stylua = {}, -- Used to format Lua code
+        ts_ls = {},
 
         -- Special Lua Config, as recommended by neovim help docs
         lua_ls = {
@@ -755,9 +764,12 @@ require('lazy').setup({
             'javascriptreact',
             'typescriptreact',
           },
-          init_options = {
-            userLanguages = {
-              typescriptreact = 'typescript',
+          settings = {
+            tailwindCSS = {
+              includeLanguages = {
+                javascriptreact = 'javascript',
+                typescriptreact = 'typescript',
+              },
             },
           },
           root_dir = function(fname)
@@ -778,6 +790,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         -- You can add other tools here that you want Mason to install
+        'stylua',
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -786,6 +799,29 @@ require('lazy').setup({
         vim.lsp.config(name, server)
         vim.lsp.enable(name)
       end
+
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('tailwindcss-react-autostart', { clear = true }),
+        pattern = { 'javascriptreact', 'typescriptreact' },
+        callback = function(args)
+          local bufnr = args.buf
+          if #vim.lsp.get_clients { bufnr = bufnr, name = 'tailwindcss' } > 0 then return end
+
+          local cfg = vim.lsp.config.tailwindcss
+          if not cfg then return end
+
+          local filename = vim.api.nvim_buf_get_name(bufnr)
+          local root = cfg.root_dir and cfg.root_dir(filename) or nil
+          if not root then return end
+
+          local manual_cfg = vim.tbl_deep_extend('force', {}, cfg, {
+            name = 'tailwindcss',
+            root_dir = root,
+          })
+
+          vim.lsp.start(manual_cfg, { bufnr = bufnr })
+        end,
+      })
     end,
   },
 
