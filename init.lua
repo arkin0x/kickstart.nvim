@@ -270,23 +270,6 @@ require('lazy').setup({
     lazy = false,
   },
   {
-    'epwalsh/obsidian.nvim',
-    version = '*',
-    lazy = true,
-    ft = 'markdown',
-    dependencies = {
-      'nvim-lua/plenary.nvim',
-    },
-    opts = {
-      workspaces = {
-        {
-          name = 'personal',
-          path = '~/Sync/store/personal',
-        },
-      },
-    },
-  },
-  {
     'epwalsh/pomo.nvim',
     version = '*',
     lazy = true,
@@ -308,6 +291,11 @@ require('lazy').setup({
     opts = {
       server = {
         override = false,
+      },
+      document_color = {
+        enabled = true,
+        kind = 'inline',
+        inline_symbol = '■ ',
       },
     },
   },
